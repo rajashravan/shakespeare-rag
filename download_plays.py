@@ -60,7 +60,7 @@ def download_plays():
         print(f"Downloading {play_name} from {url} ...")
 
         try:
-            response = requests.get(url, timeout=30)
+            response = requests.get(url, timeout=60)
             response.raise_for_status()
             with open(out_path, "w", encoding="utf-8") as f:
                 f.write(response.text)
