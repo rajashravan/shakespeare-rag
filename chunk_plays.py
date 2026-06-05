@@ -39,6 +39,7 @@ def chunk_play(text, play_name):
 
     chunks = []
     current_act = None
+    current_act_header = None
     current_scene = None
     current_header = None
     current_body_parts = []
@@ -47,7 +48,8 @@ def chunk_play(text, play_name):
         if current_header and current_body_parts:
             body = ''.join(current_body_parts).strip()
             if body:
-                chunks.append((current_act, current_scene, current_header + '\n' + body))
+                prefix = (current_act_header + '\n' + current_header) if current_act_header and not current_header.upper().startswith('ACT') else current_header
+                chunks.append((current_act, current_scene, prefix + '\n' + body))
 
     i = 0
     while i < len(parts):
@@ -59,6 +61,7 @@ def chunk_play(text, play_name):
             if token.startswith('ACT'):
                 flush_chunk()
                 current_act = roman_to_int(token.split()[1])
+                current_act_header = part.strip()
                 current_scene = None
                 current_header = part.strip()
                 current_body_parts = []
