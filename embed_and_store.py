@@ -28,6 +28,9 @@ def get_index():
             metric="cosine",
             spec=ServerlessSpec(cloud="aws", region="us-east-1"),
         )
+        while not pc.describe_index(INDEX_NAME).status["ready"]:
+            print("  Waiting for index to be ready ...")
+            time.sleep(1)
     return pc.Index(INDEX_NAME)
 
 
