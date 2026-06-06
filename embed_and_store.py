@@ -82,20 +82,22 @@ def embed_and_store():
     print("Done.")
 
 
+def to_vector(item, embedding):
+    return {
+        "id": item["id"],
+        "values": embedding,
+        "metadata": {
+            "play": item["play"],
+            "act": item["act"],
+            "scene": item["scene"],
+            "text": item["text"],
+        },
+    }
+
+
 def flush_batch(index, batch):
     embeddings = embed_batch([item["text"] for item in batch])
-    vectors = []
-    for item, embedding in zip(batch, embeddings):
-        vectors.append({
-            "id": item["id"],
-            "values": embedding,
-            "metadata": {
-                "play": item["play"],
-                "act": item["act"],
-                "scene": item["scene"],
-                "text": item["text"],
-            },
-        })
+    vectors = [to_vector(item, emb) for item, emb in zip(batch, embeddings)]
     index.upsert(vectors=vectors)
     print(f"  Upserted {len(vectors)} vectors")
 
