@@ -2,3 +2,4 @@ openai
 pinecone
 python-dotenv
 requests
+tiktoken

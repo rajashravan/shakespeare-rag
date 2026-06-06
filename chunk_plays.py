@@ -1,8 +1,20 @@
 import os
 import re
 
+import tiktoken
+
 PLAYS_DIR = "plays"
 CHUNKS_DIR = "chunks"
+
+# cl100k_base is the tokenizer used by text-embedding-3-small/large.
+ENCODER = tiktoken.get_encoding("cl100k_base")
+# Embedding model hard limit is 8192 tokens; leave headroom for the header
+# we prepend to every (sub-)chunk plus a safety margin.
+TOKEN_BUDGET = 8000
+
+
+def count_tokens(text):
+    return len(ENCODER.encode(text))
 
 GUTENBERG_START = "*** START OF THE PROJECT GUTENBERG EBOOK"
 GUTENBERG_END = "*** END OF THE PROJECT GUTENBERG EBOOK"
@@ -49,7 +61,7 @@ def chunk_play(text, play_name):
             body = ''.join(current_body_parts).strip()
             if body:
                 prefix = (current_act_header + '\n' + current_header) if current_act_header and not current_header.upper().startswith('ACT') else current_header
-                chunks.append((current_act, current_scene, prefix + '\n' + body))
+                chunks.append((current_act, current_scene, prefix, body))
 
     i = 0
     while i < len(parts):
@@ -80,6 +92,37 @@ def chunk_play(text, play_name):
     return chunks
 
 
+def split_into_parts(prefix, body, budget=TOKEN_BUDGET):
+    """Greedily pack paragraphs into parts so each (prefix + part) fits in budget.
+
+    Returns a list of full content strings, each beginning with the header
+    prefix. Most scenes fit and yield a single part; over-long scenes yield
+    several.
+    """
+    full = prefix + '\n' + body
+    if count_tokens(full) <= budget:
+        return [full]
+
+    paragraphs = [p.strip() for p in re.split(r'\n\s*\n', body) if p.strip()]
+    prefix_tokens = count_tokens(prefix + '\n')
+
+    parts = []
+    current = []
+    current_tokens = prefix_tokens
+    for para in paragraphs:
+        para_tokens = count_tokens(para + '\n\n')
+        if current and current_tokens + para_tokens > budget:
+            parts.append('\n\n'.join(current))
+            current = []
+            current_tokens = prefix_tokens
+        current.append(para)
+        current_tokens += para_tokens
+    if current:
+        parts.append('\n\n'.join(current))
+
+    return [prefix + '\n' + p for p in parts]
+
+
 def chunk_plays():
     os.makedirs(CHUNKS_DIR, exist_ok=True)
 
@@ -99,15 +142,24 @@ def chunk_plays():
 
         chunks = chunk_play(text, play_name)
 
-        for act, scene, content in chunks:
+        written = 0
+        for act, scene, prefix, body in chunks:
             if act is None or scene is None:
                 continue
-            out_name = f"{play_name}_act{act}_scene{scene}.txt"
-            out_path = os.path.join(CHUNKS_DIR, out_name)
-            with open(out_path, 'w', encoding='utf-8') as f:
-                f.write(content)
+            parts = split_into_parts(prefix, body)
+            for idx, content in enumerate(parts):
+                if len(parts) == 1:
+                    out_name = f"{play_name}_act{act}_scene{scene}.txt"
+                else:
+                    out_name = f"{play_name}_act{act}_scene{scene}_part{idx + 1}.txt"
+                out_path = os.path.join(CHUNKS_DIR, out_name)
+                with open(out_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                written += 1
+            if len(parts) > 1:
+                print(f"  {play_name} act{act} scene{scene}: split into {len(parts)} parts")
 
-        print(f"{play_name}: {len(chunks)} chunks extracted")
+        print(f"{play_name}: {written} chunks written")
 
 
 if __name__ == "__main__":
