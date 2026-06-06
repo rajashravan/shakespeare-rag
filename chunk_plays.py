@@ -19,9 +19,13 @@ def count_tokens(text):
 GUTENBERG_START = "*** START OF THE PROJECT GUTENBERG EBOOK"
 GUTENBERG_END = "*** END OF THE PROJECT GUTENBERG EBOOK"
 
+# Body markers are UPPERCASE (sometimes indented); the table-of-contents uses
+# Title Case ("Scene"). Matching case-sensitively excludes the TOC, while the
+# optional leading whitespace catches indented body scenes (e.g. Hamlet's
+# scenes 2+). Case-sensitive on purpose — do NOT add re.IGNORECASE.
 SCENE_PATTERN = re.compile(
-    r'^(ACT\s+[IVX]+|SCENE\s+[IVX]+\.)',
-    re.MULTILINE | re.IGNORECASE
+    r'^[ \t]*(ACT\s+[IVX]+|SCENE\s+[IVX]+\.)',
+    re.MULTILINE
 )
 
 
