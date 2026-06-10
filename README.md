@@ -2,6 +2,8 @@
 
 _Designed by me. Written with Claude's help._
 
+📖 Read the write-up: [Building ShakespeareGPT](https://medium.com/@rajashravan/building-shakespearegpt-6af7360a78ee) — how I rolled my own Shakespeare chatbot with Project Gutenberg and RAG.
+
 A command-line RAG (Retrieval-Augmented Generation) app that answers non-trivial
 questions about Shakespeare's plays — grounded in the actual text, not the
 model's fuzzy memory of it.
